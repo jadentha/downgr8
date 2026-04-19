@@ -1,4 +1,4 @@
-name: Build downgr8 IPK (Self-Contained)
+name: Build downgr8 IPK (Static)
 
 on:
   push:
@@ -13,36 +13,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '16'
-
     - name: Install System Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-arm-linux-gnueabi build-essential
+        npm install -g @webosose/ares-cli
 
-    - name: Install webOS CLI
-      run: npm install -g @webosose/ares-cli
-
-    - name: Patch & Compile Static Binary
+    - name: Compile and Package
       run: |
-        # Fix the static_assert and compile. 
-        # This creates the 'build/app' and 'build/service' folders.
+        # Fix the static_assert issue for the cross-compiler
         sed -i 's/static_assert/\/\/static_assert/' main.c
+        # Compile as a static tank, ignoring the TV's GLIBC
         make CC="arm-linux-gnueabi-gcc -static" LIBS=""
-
-    - name: Bundle Node Modules (The Fix)
-      run: |
-        # Now that 'make' has created the folders, we go in and install the libs
-        cd build/service
-        npm init -y
-        npm install webos-service
-        cd ../..
-
-    - name: Package IPK
-      run: ares-package build/app build/service
+        # Package the raw files
+        ares-package build/app build/service
 
     - name: Upload IPK Artifact
       uses: actions/upload-artifact@v4
