@@ -26,24 +26,20 @@ jobs:
     - name: Install webOS CLI
       run: npm install -g @webosose/ares-cli
 
+    - name: Patch & Compile Static Binary
+      run: |
+        # Fix the static_assert and compile. 
+        # This creates the 'build/app' and 'build/service' folders.
+        sed -i 's/static_assert/\/\/static_assert/' main.c
+        make CC="arm-linux-gnueabi-gcc -static" LIBS=""
+
     - name: Bundle Node Modules (The Fix)
       run: |
-        # Go into the service source folder
-        # Adjust path if your service files are in a different subdir
+        # Now that 'make' has created the folders, we go in and install the libs
         cd build/service
         npm init -y
         npm install webos-service
         cd ../..
-
-    - name: Patch C Source
-      run: |
-        # Fix the static_assert issue for the cross-compiler
-        sed -i 's/static_assert/\/\/static_assert/' main.c
-
-    - name: Compile Static Binary
-      run: |
-        # We use -static to bundle glibc so the TV can't complain
-        make CC="arm-linux-gnueabi-gcc -static" LIBS=""
 
     - name: Package IPK
       run: ares-package build/app build/service
