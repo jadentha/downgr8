@@ -1,0 +1,44 @@
+name: Build downgr8 IPK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    - name: Install webOS CLI & ARM Cross-Compiler
+      run: |
+        sudo apt-get update
+        # Install the standard Linux ARM compiler
+        sudo apt-get install -y gcc-arm-linux-gnueabi
+        # Install the webOS packaging tool
+        npm install -g @webosose/ares-cli
+
+    - name: Patch C Source Code
+      run: |
+        # Violently remove the static_assert that breaks older GCC versions
+        sed -i 's/static_assert/\/\/static_assert/' main.c
+
+    - name: Compile and Package
+      run: |
+        # Override the CC variable in the Makefile to use our injected compiler
+        make CC=arm-linux-gnueabi-gcc
+
+    - name: Upload IPK Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: downgr8-ipk
+        # Grab the packaged file
+        path: "*.ipk"
