@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     # Downgrade to an older Ubuntu to get a more compatible GLIBC version
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
@@ -33,9 +33,8 @@ jobs:
 
     - name: Compile and Package
       run: |
-        # Override CC and empty LIBS to bypass missing LG SDK files
-        make CC=arm-linux-gnueabi-gcc LIBS=""
-        # Manually package because the Makefile might expect specific paths
+        # Use -static to bundle the libraries inside the binary
+        make CC="arm-linux-gnueabi-gcc -static" LIBS=""
         ares-package build/app build/service
 
     - name: Upload IPK Artifact
